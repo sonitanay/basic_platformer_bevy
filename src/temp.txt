@@ -1,0 +1,77 @@
+// NON VECTOR CODE CHANGED FOR MOVEMENT STRUCT
+        // let move_y = vel.0.y * time.delta_seconds()
+        //     + accel.0.y * 0.5 * time.delta_seconds() * time.delta_seconds();
+        // let move_x = vel.0.x * time.delta_seconds()
+        //     + (accel.0.x + friction.0) * 0.5 * time.delta_seconds() * time.delta_seconds();
+        // vel.0.y += accel.0.y * time.delta_seconds();
+        // vel.0.x += (accel.0.x + friction.0) * time.delta_seconds();
+
+        // // stop via friction
+        // if vel.0.x > 0. {
+        //     vel.0.x = vel.0.x.clamp(MIN_VEL_PLAYER, MAX_VEL_PLAYER);
+        // } else {
+        //     vel.0.x = vel.0.x.clamp(-MAX_VEL_PLAYER, -MIN_VEL_PLAYER);
+        // }
+
+        // if vel.0.x == vel.0.x.signum() * MIN_VEL_PLAYER {
+        //     friction.0 = 0.;
+        //     vel.0.x = 0.;
+        // }
+
+        // let move_sign_y = move_y.signum();
+        // let move_sign_x = move_x.signum();
+
+        // // check collide y
+
+        // if contains(
+        //     &level.grid,
+        //     transform.translation.x,
+        //     transform.translation.y + move_y + (move_sign_y * BLOCK_SIZE.y / 2.0),
+        // ) {
+        //     info!("here");
+        //     grounded.0 = true;
+        //     accel.0.y = 0.;
+        //     vel.0.y = 0.;
+        //     break;
+        // } else {
+        //     transform.translation.y += move_y;
+        // }
+
+        // //check collide x
+
+        // if contains(
+        //     &level.grid,
+        //     transform.translation.x + move_x + (move_sign_x * BLOCK_SIZE.x / 2.0),
+        //     transform.translation.y,
+        // ) {
+        //     vel.0.x = 0.;
+        //     accel.0.x = 0.;
+        //     break;
+        // } else {
+        //     transform.translation.x += move_x;
+        // }
+
+        //FOR PIXEL PERFECT MOVEMENT BUT THIS IS INSANELY SLOW.
+        //DO SOMETHING ABOUT THIS
+        // if move_y != 0. {
+        //     let move_sign = move_y.signum();
+        //     info!("{}", move_y);
+        //     let mut move_y_final: f32 = transform.translation.y;
+        //     while move_y != 0. {
+        //         if !contains(
+        //             &level.grid,
+        //             transform.translation.x,
+        //             move_y_final + move_sign + (move_sign * BLOCK_SIZE.y / 2.0),
+        //         ) {
+        //             move_y_final += move_sign;
+        //             move_y -= move_sign;
+        //             grounded.0 = false;
+        //         } else {
+        //             grounded.0 = true;
+        //             gravity.0 = 0.;
+        //             vel.y = 0.;
+        //             break;
+        //         }
+        //     }
+        //     transform.translation.y = move_y_final;
+        // }

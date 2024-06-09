@@ -1,15 +1,16 @@
+use crate::physics::*;
 use crate::util::*;
 use bevy::prelude::*;
 pub struct LevelPlugin;
 
 #[derive(Resource)]
 pub struct Level {
-    world_pos: Vec3,
+    pub world_pos: Vec3,
     // level_width: f32,
     // level_height: f32,
     // index: usize,
-    block_size: Vec2,
-    grid: Vec<(f32, f32, String)>,
+    pub block_size: Vec2,
+    pub grid: Vec<Solid>,
 }
 
 impl Plugin for LevelPlugin {
@@ -31,7 +32,14 @@ impl Level {
     }
 
     pub fn add_tile(mut self, tile: (f32, f32, String)) -> Level {
-        self.grid.push(tile);
+        self.grid.push(Solid {
+            pos_x: (&self.world_pos.x + &self.block_size.x / 2.) + (&self.block_size.x * tile.0),
+            pos_y: (&self.world_pos.y + &self.block_size.y / 2.) + (&self.block_size.y * tile.1),
+            texture_file: tile.2,
+            bounds: HitBox {
+                half_size: BLOCK_SIZE / 2.,
+            },
+        });
         self
     }
 
@@ -53,25 +61,14 @@ impl Level {
 
 fn startup_level_init(mut commands: Commands, level: Res<Level>, asset_server: Res<AssetServer>) {
     for item in &level.grid {
-        commands.spawn((
-            SpriteBundle {
-                texture: asset_server.load(&item.2),
-                transform: Transform::from_translation(Vec3::new(
-                    (&level.world_pos.x + &level.block_size.x / 2.)
-                        + (&level.block_size.x * item.0),
-                    (&level.world_pos.y + &level.block_size.y / 2.)
-                        + (&level.block_size.y * item.1),
-                    level.world_pos.z,
-                )),
-                ..default()
-            },
-            Solid,
-            HitBox {
-                half_size: BLOCK_SIZE / 2.,
-            },
-        ));
+        commands.spawn((SpriteBundle {
+            texture: asset_server.load(&item.texture_file),
+            transform: Transform::from_translation(Vec3::new(
+                item.pos_x,
+                item.pos_y,
+                level.world_pos.z,
+            )),
+            ..default()
+        },));
     }
 }
-
-#[derive(Component)]
-pub struct Solid;
