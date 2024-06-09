@@ -16,6 +16,7 @@ impl Plugin for PlayerPlugin {
                 control_player,
                 draw_trail_while_dashing.after(control_player),
                 update_particle_timer.after(draw_trail_while_dashing),
+                afterimage_while_dashing.after(draw_trail_while_dashing),
             ),
         );
     }
@@ -24,9 +25,12 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 pub struct TrailParticle(pub Timer);
 
-fn draw_trail_while_dashing(query: Query<&Transform, With<PlayerMarker>>, mut commands: Commands) {
-    let transform = query.single();
-    //if matches!(movement.dash.status, DashState::Dashing) {
+fn draw_trail_while_dashing(
+    query: Query<(&Transform, &Movement), With<PlayerMarker>>,
+    mut commands: Commands,
+) {
+    let (transform, _) = query.single();
+
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
@@ -42,7 +46,61 @@ fn draw_trail_while_dashing(query: Query<&Transform, With<PlayerMarker>>, mut co
         },
         TrailParticle(Timer::new(Duration::from_secs_f32(0.5), TimerMode::Once)),
     ));
-    //}
+}
+
+// fn afterimage_wrapper(
+//     query_init: Query<&Transform, With<PlayerMarker>>,
+// ) -> impl FnMut(Commands, Query<(&Transform, &Movement), With<PlayerMarker>>, Res<AssetServer>) {
+//     let temp_t = query_init.single();
+//     let mut local_dist = 0.;
+//     let mut local_translation: Vec3 = temp_t.translation;
+
+//     move |mut commands, query, asset_server| {
+//         let (transform, movement) = query.single();
+//         let mut bundle = SpriteBundle {
+//             texture: asset_server.load("tile_0022.png"),
+//             ..default()
+//         };
+
+//         bundle.sprite.color = bundle.sprite.color.with_a(0.5);
+//         bundle.transform = transform.clone();
+//         local_dist += local_translation.distance(transform.translation);
+//         local_translation = transform.translation;
+//         if matches!(movement.dash.status, DashState::Dashing) && local_dist >= 25. {
+//             local_dist = 0.;
+//             commands.spawn((
+//                 bundle,
+//                 TrailParticle(Timer::new(Duration::from_secs_f32(0.2), TimerMode::Once)),
+//             ));
+//         }
+//     }
+// }
+
+fn afterimage_while_dashing(
+    mut commands: Commands,
+    query: Query<(&Transform, &Movement), With<PlayerMarker>>,
+    asset_server: Res<AssetServer>,
+    _: Res<Time>,
+    mut local_dist: Local<f32>,
+    mut local_translation: Local<Vec3>,
+) {
+    let (transform, movement) = query.single();
+    let mut bundle = SpriteBundle {
+        texture: asset_server.load("tile_0022.png"),
+        ..default()
+    };
+
+    bundle.sprite.color = bundle.sprite.color.with_a(0.5);
+    bundle.transform = transform.clone();
+    *local_dist += (*local_translation).distance(transform.translation);
+    *local_translation = transform.translation;
+    if matches!(movement.dash.status, DashState::Dashing) && *local_dist >= 100. / 4. {
+        *local_dist = 0.;
+        commands.spawn((
+            bundle,
+            TrailParticle(Timer::new(Duration::from_secs_f32(0.2), TimerMode::Once)),
+        ));
+    }
 }
 
 fn update_particle_timer(
@@ -52,9 +110,7 @@ fn update_particle_timer(
 ) {
     for (entity, mut particle, mut sprite) in query.iter_mut() {
         particle.0.tick(time.delta());
-        let alpha =
-            1.0 - (particle.0.elapsed().as_secs_f32() / particle.0.duration().as_secs_f32());
-        sprite.color = Color::rgba(1., 1., 1., alpha);
+        sprite.color = Color::rgba(1., 1., 1., sprite.color.a() * 0.99);
         if particle.0.just_finished() {
             commands.entity(entity).despawn();
         }

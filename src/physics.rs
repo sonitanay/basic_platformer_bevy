@@ -159,7 +159,7 @@ fn update_physics(
         // CONFIGURATIONS
         match movement.dash.status {
             DashState::Started => {
-                if !(movement.dash.dash_count > 0) {
+                if !(movement.dash.dash_count > 0) || movement.directional.abs() == Vec2::ZERO {
                     movement.dash.status = DashState::Cancelled;
                     return;
                 }
@@ -172,10 +172,8 @@ fn update_physics(
             }
             DashState::Finished => {
                 movement.dash.status = DashState::Ready;
-                movement.dash.status = DashState::Ready;
                 gravity.0 = GRAVITY_DEFAULT;
                 accel.0.y = 0.;
-                friction.0 = FRICTION;
             }
             DashState::Cancelled => {
                 movement.dash.status = DashState::Ready;
@@ -197,6 +195,7 @@ fn update_physics(
                 friction.0 = accel.0.x.signum() * FRICTION;
             } else {
                 accel.0.x = 0.;
+                friction.0 = vel.0.x.signum() * FRICTION;
             }
         }
 

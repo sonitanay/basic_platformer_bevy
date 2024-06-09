@@ -14,8 +14,11 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .insert_resource(
             Level::new()
-                .repeat((0., 0., "tile_0069.png".to_string()), 30., 0.)
-                .repeat((0., 1., "tile_0069.png".to_string()), 0., 43.),
+                .repeat((0., 0., "tile_0069.png".to_string()), 79., 0.)
+                .repeat((0., 1., "tile_0069.png".to_string()), 0., 42.)
+                .repeat((20., 10., "tile_0069.png".to_string()), 39., 0.)
+                .repeat((79., 1., "tile_0069.png".to_string()), 0., 42.)
+                .repeat((0., 44., "tile_0069.png".to_string()), 79., 0.),
         )
         //.repeat((0., 0., "tile_0069.png".to_string()), 80., 1.)
         //.add_tile((1., 0., "tile_0069.png".to_string()))
@@ -33,8 +36,8 @@ fn setup_world(mut commands: Commands) {
         ..default()
     };
     cam.projection.scaling_mode = ScalingMode::AutoMax {
-        max_width: 352.,
-        max_height: 198.,
+        max_width: 640.,
+        max_height: 360.,
     };
 
     commands.spawn((cam, CameraMarker));
