@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use crate::physics::{Acceleration, DashState, Friction, Gravity, Grounded, Movement, Velocity};
+use crate::{
+    level::Level,
+    physics::{Acceleration, DashState, Friction, Gravity, Grounded, Movement, Velocity},
+};
 use bevy::{math::Vec2, prelude::*};
 pub struct PlayerPlugin;
 #[derive(Component)]
@@ -48,34 +51,6 @@ fn draw_trail_while_dashing(
     ));
 }
 
-// fn afterimage_wrapper(
-//     query_init: Query<&Transform, With<PlayerMarker>>,
-// ) -> impl FnMut(Commands, Query<(&Transform, &Movement), With<PlayerMarker>>, Res<AssetServer>) {
-//     let temp_t = query_init.single();
-//     let mut local_dist = 0.;
-//     let mut local_translation: Vec3 = temp_t.translation;
-
-//     move |mut commands, query, asset_server| {
-//         let (transform, movement) = query.single();
-//         let mut bundle = SpriteBundle {
-//             texture: asset_server.load("tile_0022.png"),
-//             ..default()
-//         };
-
-//         bundle.sprite.color = bundle.sprite.color.with_a(0.5);
-//         bundle.transform = transform.clone();
-//         local_dist += local_translation.distance(transform.translation);
-//         local_translation = transform.translation;
-//         if matches!(movement.dash.status, DashState::Dashing) && local_dist >= 25. {
-//             local_dist = 0.;
-//             commands.spawn((
-//                 bundle,
-//                 TrailParticle(Timer::new(Duration::from_secs_f32(0.2), TimerMode::Once)),
-//             ));
-//         }
-//     }
-// }
-
 fn afterimage_while_dashing(
     mut commands: Commands,
     query: Query<(&Transform, &Movement), With<PlayerMarker>>,
@@ -117,11 +92,15 @@ fn update_particle_timer(
     }
 }
 
-fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, level: Res<Level>) {
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("tile_0022.png"),
-            transform: Transform::from_translation(Vec3::new(100., 100., 0.)),
+            transform: Transform::from_translation(Vec3::new(
+                level.player_spawn_pos.x,
+                level.player_spawn_pos.y,
+                0.,
+            )),
             ..default()
         },
         Player,
@@ -141,8 +120,11 @@ fn control_player(
 ) {
     let mut temp_vec = Vec2::ZERO;
     let mut movement = query.single_mut();
-    if input.pressed(KeyCode::Space) {
-        temp_vec += Vec2::new(0., 1.);
+    if input.just_pressed(KeyCode::Space) {
+        movement.jump = true;
+    }
+    if input.just_released(KeyCode::Space) {
+        movement.jump = false;
     }
     if input.pressed(KeyCode::ArrowUp) {
         temp_vec += Vec2::new(-0., 1.);
@@ -156,7 +138,7 @@ fn control_player(
     if input.pressed(KeyCode::ArrowRight) {
         temp_vec += Vec2::new(1., 0.);
     }
-    if input.just_pressed(KeyCode::KeyQ) {
+    if input.just_pressed(KeyCode::KeyQ) && matches!(movement.dash.status, DashState::Ready) {
         movement.dash.status = DashState::Started;
     }
     movement.directional = temp_vec;

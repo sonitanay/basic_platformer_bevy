@@ -45,6 +45,7 @@ pub struct Acceleration(pub Vec2);
 pub struct Movement {
     pub directional: Vec2,
     pub dash: Dash,
+    pub jump: bool,
 }
 
 impl Default for Movement {
@@ -52,6 +53,7 @@ impl Default for Movement {
         Movement {
             directional: Vec2::ZERO,
             dash: Dash::default(),
+            jump: false,
         }
     }
 }
@@ -86,6 +88,8 @@ pub struct Dash {
     pub dash_count: usize,
     pub dash_timer: Timer,
     pub status: DashState,
+    pub distance: f32,
+    pub start_point: Vec3,
 }
 impl Default for Dash {
     fn default() -> Self {
@@ -96,6 +100,8 @@ impl Default for Dash {
                 TimerMode::Once,
             ),
             status: DashState::default(),
+            distance: 0.,
+            start_point: Vec3::ZERO,
         }
     }
 }
@@ -120,14 +126,13 @@ impl Solid {
     }
 }
 
-fn contains(solids: &Vec<Solid>, x: f32, y: f32) -> bool {
-    let mut contain = false;
-
+fn contains(solids: &Vec<Solid>, x: f32, y: f32) -> Option<&Solid> {
     for item in solids {
-        contain = contain || item.contains(x, y)
+        if item.contains(x, y) {
+            return Some(item);
+        }
     }
-
-    return contain;
+    None
 }
 
 fn update_physics(
@@ -159,18 +164,26 @@ fn update_physics(
         // CONFIGURATIONS
         match movement.dash.status {
             DashState::Started => {
-                if !(movement.dash.dash_count > 0) || movement.directional.abs() == Vec2::ZERO {
-                    movement.dash.status = DashState::Cancelled;
+                movement.dash.start_point = transform.translation;
+                let temp_vec: Vec2;
+                if movement.directional.abs() == Vec2::ZERO {
+                    temp_vec = vel.0.try_normalize().unwrap_or_else(|| Vec2::new(1., 0.));
+                } else {
+                    temp_vec = movement.directional.normalize();
+                }
+                movement.dash.status = DashState::Cancelled;
+                if !(movement.dash.dash_count > 0) {
                     return;
                 }
                 movement.dash.status = DashState::Dashing;
                 movement.dash.dash_count -= 1;
-                vel.0 = movement.directional.normalize() * INITIAL_VEL_DASH;
-                accel.0 = -movement.directional.normalize() * INITIAL_ACCEL_DASH;
+                vel.0 = temp_vec * INITIAL_VEL_DASH;
+                accel.0 = -temp_vec * INITIAL_ACCEL_DASH;
                 gravity.0 = 0.;
                 friction.0 = 0.
             }
             DashState::Finished => {
+                movement.dash.distance = movement.dash.start_point.distance(transform.translation);
                 movement.dash.status = DashState::Ready;
                 gravity.0 = GRAVITY_DEFAULT;
                 accel.0.y = 0.;
@@ -185,14 +198,15 @@ fn update_physics(
             if grounded.0 {
                 movement.dash.dash_count = DEFAULT_DASH_COUNT;
 
-                if movement.directional.y > 0. {
+                if movement.jump {
                     vel.0.y = JMP_VEL_PLAYER;
+                    movement.jump = false;
                 }
             }
 
             if movement.directional.x.abs() != 0. {
                 accel.0.x = movement.directional.x.signum() * INITIAL_ACCEL_PLAYER;
-                friction.0 = accel.0.x.signum() * FRICTION;
+                friction.0 = 0.;
             } else {
                 accel.0.x = 0.;
                 friction.0 = vel.0.x.signum() * FRICTION;
@@ -228,7 +242,7 @@ fn update_physics(
             vel.0.x,
             friction.0,
             time.delta_seconds(),
-            movement.dash.dash_count
+            movement.directional
         );
 
         // info!(
@@ -252,12 +266,35 @@ fn update_physics(
         // );
 
         // CHECK MOVE X --------------------------------
-        if !contains(
+        if contains(
             &level.grid,
             transform.translation.x + move_x + move_x.signum() * BLOCK_SIZE.x * 0.5,
             transform.translation.y,
-        ) {
+        )
+        .is_none()
+        {
+            // if !contains(
+            //     &level.grid,
+            //     transform.translation.x + move_x + move_x.signum() * BLOCK_SIZE.x * 0.5,
+            //     transform.translation.y - (BLOCK_SIZE.y * 0.5),
+            // )
+            // .is_none()
+            // {
+            //     transform.translation.y += BLOCK_SIZE.y * 0.5;
+            // } else if !contains(
+            //     &level.grid,
+            //     transform.translation.x + move_x + move_x.signum() * BLOCK_SIZE.x * 0.5,
+            //     transform.translation.y + (BLOCK_SIZE.y * 0.5),
+            // )
+            // .is_none()
+            // {
+            //     transform.translation.y -= BLOCK_SIZE.y * 0.5;
+            // }
             transform.translation.x += move_x;
+        } else {
+            // vel.0.x = 0.;
+            // accel.0.x = 0.;
+            friction.0 = 0.;
         }
 
         // info!(
@@ -272,15 +309,35 @@ fn update_physics(
         // );
 
         // CHECK MOVE Y --------------------------------
-        if !contains(
+        if contains(
             &level.grid,
             transform.translation.x,
             transform.translation.y + move_y + move_y.signum() * BLOCK_SIZE.y * 0.5,
-        ) {
+        )
+        .is_none()
+        {
+            // if !contains(
+            //     &level.grid,
+            //     transform.translation.x - (BLOCK_SIZE.x * 0.5),
+            //     transform.translation.y + move_y + move_y.signum() * BLOCK_SIZE.y * 0.5,
+            // )
+            // .is_none()
+            // {
+            //     transform.translation.x += BLOCK_SIZE.x * 0.5;
+            // } else if !contains(
+            //     &level.grid,
+            //     transform.translation.x + (BLOCK_SIZE.x * 0.5),
+            //     transform.translation.y + move_y + move_y.signum() * BLOCK_SIZE.y * 0.5,
+            // )
+            // .is_none()
+            // {
+            //     transform.translation.x -= BLOCK_SIZE.x * 0.5;
+            // }
             transform.translation.y += move_y;
             grounded.0 = false;
         } else {
-            vel.0.y = 0.;
+            // vel.0.y = 0.;
+            // accel.0.y = 0.;
             grounded.0 = true;
         }
     }
